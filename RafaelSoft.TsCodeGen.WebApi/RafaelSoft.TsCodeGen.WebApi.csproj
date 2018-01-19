@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{87F1A2CF-24CB-48BD-9073-7E993CEE0B1B}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>RafaelSoft.TsCodeGen.WebApi</RootNamespace>
+    <AssemblyName>RafaelSoft.TsCodeGen.WebApi</AssemblyName>
+    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Newtonsoft.Json, Version=10.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.10.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.ComponentModel.DataAnnotations" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Net.Http.Formatting, Version=5.2.3.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.AspNet.WebApi.Client.5.2.3\lib\net45\System.Net.Http.Formatting.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.Web" />
+    <Reference Include="System.Web.Http, Version=5.2.3.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.AspNet.WebApi.Core.5.2.3\lib\net45\System.Web.Http.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Gen\GeneratorNgxWebApi.cs" />
+    <Compile Include="Models\EndpointMethodCollection.cs" />
+    <Compile Include="WebUtils\WebApiUtils.cs" />
+    <Compile Include="Models\EndpointMethodSpec.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Gen\TsHttpUtils.cs" />
+    <Compile Include="WebUtils\HelpPageConfigurationExtensions.cs" />
+    <Compile Include="WebUtils\ModelDescriptions\CollectionModelDescription.cs" />
+    <Compile Include="WebUtils\ModelDescriptions\ComplexTypeModelDescription.cs" />
+    <Compile Include="WebUtils\ModelDescriptions\DictionaryModelDescription.cs" />
+    <Compile Include="WebUtils\ModelDescriptions\EnumTypeModelDescription.cs" />
+    <Compile Include="WebUtils\ModelDescriptions\EnumValueDescription.cs" />
+    <Compile Include="WebUtils\HelpPageApiModel.cs" />
+    <Compile Include="WebUtils\ModelDescriptions\IModelDocumentationProvider.cs" />
+    <Compile Include="WebUtils\ModelDescriptions\KeyValuePairModelDescription.cs" />
+    <Compile Include="WebUtils\ModelDescriptions\ModelDescription.cs" />
+    <Compile Include="WebUtils\ModelDescriptions\ModelDescriptionGenerator.cs" />
+    <Compile Include="WebUtils\ModelDescriptions\ModelNameHelper.cs" />
+    <Compile Include="WebUtils\ModelDescriptions\ParameterAnnotation.cs" />
+    <Compile Include="WebUtils\ModelDescriptions\ParameterDescription.cs" />
+    <Compile Include="WebUtils\ModelDescriptions\SimpleTypeModelDescription.cs" />
+    <Compile Include="WebUtils\SampleGeneration\HelpPageSampleGenerator.cs" />
+    <Compile Include="WebUtils\SampleGeneration\HelpPageSampleKey.cs" />
+    <Compile Include="WebUtils\SampleGeneration\ImageSample.cs" />
+    <Compile Include="WebUtils\SampleGeneration\InvalidSample.cs" />
+    <Compile Include="WebUtils\SampleGeneration\ObjectGenerator.cs" />
+    <Compile Include="WebUtils\SampleGeneration\SampleDirection.cs" />
+    <Compile Include="WebUtils\SampleGeneration\TextSample.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\RafaelSoft.TsCodeGen\RafaelSoft.TsCodeGen.csproj">
+      <Project>{3130564c-9358-4c86-8dd0-10e985ad5a57}</Project>
+      <Name>RafaelSoft.RafaelSoft.TsCodeGen</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="app.config" />
+    <None Include="packages.config" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

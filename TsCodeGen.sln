@@ -1,0 +1,28 @@
+
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.26430.15
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RafaelSoft.TsCodeGen", "RafaelSoft.TsCodeGen\RafaelSoft.TsCodeGen.csproj", "{3D74E2C8-A923-43C6-A977-F3B66EF3FFCE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RafaelSoft.TsCodeGen.WebApi", "RafaelSoft.TsCodeGen.WebApi\RafaelSoft.TsCodeGen.WebApi.csproj", "{87F1A2CF-24CB-48BD-9073-7E993CEE0B1B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{3D74E2C8-A923-43C6-A977-F3B66EF3FFCE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3D74E2C8-A923-43C6-A977-F3B66EF3FFCE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3D74E2C8-A923-43C6-A977-F3B66EF3FFCE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3D74E2C8-A923-43C6-A977-F3B66EF3FFCE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{87F1A2CF-24CB-48BD-9073-7E993CEE0B1B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{87F1A2CF-24CB-48BD-9073-7E993CEE0B1B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{87F1A2CF-24CB-48BD-9073-7E993CEE0B1B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{87F1A2CF-24CB-48BD-9073-7E993CEE0B1B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
