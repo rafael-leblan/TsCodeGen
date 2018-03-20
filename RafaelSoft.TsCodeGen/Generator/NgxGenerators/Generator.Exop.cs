@@ -1,9 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using RafaelSoft.TsCodeGen.Common;
 using RafaelSoft.TsCodeGen.Generator;
 using RafaelSoft.TsCodeGen.Models;
 
@@ -15,6 +16,7 @@ namespace RafaelSoft.TsCodeGen.Generator.NgxGenerators
         public TsMethodCollection ExvokerInterface { get; set; }
         public string AngularClassName { get; set; }
         public string ExinvokerGlobalName { get; set; } = "exinvoker";
+        public ITsClassGenerationConfig TsClassGenConfig { get; set; } = new TsClassGenerationManualConfig(); // NOTE: default
 
         public GeneratorNgxExop(TsImportsManager importsManager)
         {
@@ -63,7 +65,7 @@ export class {AngularClassName} {{
             if (spec.ParamSpecs.Length > 1)
                 throw new ArgumentException($"Angular invocation method should only have 1 param, because Subject<T> takes 1 param. Method: {spec.MethodName}");
             var param1 = spec.ParamSpecs[0];
-            return $"public readonly {spec.MethodName}:Subject<{param1.TsParamTypeName}> = new Subject<{param1.TsParamTypeName}>();";
+            return $"public readonly {spec.MethodName}:Subject<{param1.GetTsParamTypeName(TsClassGenConfig)}> = new Subject<{param1.GetTsParamTypeName(TsClassGenConfig)}>();";
         }
         private string Generate_invocation(TsMethodSpec spec)
         {
@@ -71,9 +73,9 @@ export class {AngularClassName} {{
                 throw new ArgumentException($"Angular invocation method should only have 1 param, because Subject<T> takes 1 param. Method: {spec.MethodName}");
             var param1 = spec.ParamSpecs[0];
             return $@"
-window['exinvoke_{spec.MethodName}'] = ({param1.ParamName}:{param1.TsParamTypeName}) => {{
+window['exinvoke_{spec.MethodName}'] = ({param1.ParamName}:{param1.GetTsParamTypeName(TsClassGenConfig)}) => {{
   this.ngZone.run(() => {{
-    {param1.ParamName} = {param1.TsParamTypeReviver(param1.ParamName)};
+    {param1.ParamName} = {param1.TsParamTypeReviver(TsClassGenConfig, param1.ParamName)};
     this.{spec.MethodName}.next({param1.ParamName});
   }});
 }};";
@@ -81,7 +83,7 @@ window['exinvoke_{spec.MethodName}'] = ({param1.ParamName}:{param1.TsParamTypeNa
         private string Generate_exvocation(TsMethodSpec spec)
         {
             var paramsStrWithType = spec.ParamSpecs
-                .Select(p => $"{p.ParamName}:{p.TsParamTypeName}")
+                .Select(p => $"{p.ParamName}:{p.GetTsParamTypeName(TsClassGenConfig)}")
                 .StringJoin(", ");
             var paramsStr = spec.ParamSpecs
                 .Select(p => p.ParamName)
@@ -89,7 +91,7 @@ window['exinvoke_{spec.MethodName}'] = ({param1.ParamName}:{param1.TsParamTypeNa
             return $@"
 exinvoke_{spec.MethodName}({paramsStrWithType}) {{
   if (!window[this.exinvokerGlobalName]) {{
-    alert(`${{this.exinvokerGlobalName}} has not been globally set for this chromium control!`);
+    console.error(`${{this.exinvokerGlobalName}} has not been globally set for this chromium control! Failed to call ${{this.exinvokerGlobalName}}.{spec.MethodName}`, {paramsStr});
     return;
   }}
   window[this.exinvokerGlobalName].{spec.MethodName}({paramsStr});

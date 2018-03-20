@@ -61,13 +61,15 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Generator\GeneratorTsClassesMapping.cs" />
     <Compile Include="Generator\NgxGenerators\Generator.SignlaR.cs" />
     <Compile Include="Generator\NgxGenerators\Generator.Exop.cs" />
     <Compile Include="Generator\GeneratorTsClasses.cs" />
     <Compile Include="Generator\NgxGenerators\NgxTsSnippets.cs" />
     <Compile Include="Generator\TsCodeImports.cs" />
-    <Compile Include="Generator\UtilsTsCodeGen.cs" />
+    <Compile Include="Common\UtilsTsCodeGen.cs" />
     <Compile Include="Models\CustomAttributes.cs" />
+    <Compile Include="Common\IGenerationContext.cs" />
     <Compile Include="Models\TsClassCollection.cs" />
     <Compile Include="Models\TsClassSpec.cs" />
     <Compile Include="Models\TsImportsManager.cs" />

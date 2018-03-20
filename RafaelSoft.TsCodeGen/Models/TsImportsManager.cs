@@ -1,9 +1,5 @@
-﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using RafaelSoft.TsCodeGen.Generator;
+using RafaelSoft.TsCodeGen.Common;
 
 namespace RafaelSoft.TsCodeGen.Models
 {

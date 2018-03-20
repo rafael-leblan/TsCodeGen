@@ -1,8 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using RafaelSoft.TsCodeGen.Common;
+using RafaelSoft.TsCodeGen.Generator;
 
 namespace RafaelSoft.TsCodeGen.Models
 {
@@ -28,33 +30,32 @@ namespace RafaelSoft.TsCodeGen.Models
         public string CustomTsReviverScript { get; set; }
         public TsCsTypeSpec TypeSpec { get; set; }
 
-        public string GetTsName(bool isLowercase) => isLowercase
-            ? Name.ToLower()
-            : Name;
+        public string GetTsName(ITsClassGenerationConfig genConfig) =>
+            Name.IdentifierConvertCase(genConfig.FieldCaseType);
 
-        public string ToTsString(bool isLowercase)
+        public string ToTsString(ITsClassGenerationConfig genConfig)
         {
-            var typeSpecTs = TypeSpec.ToTsString();
+            var typeSpecTs = TypeSpec.ToTsString(genConfig);
             var isOptionalStr = TypeSpec.IsOptional ? "?" : "";
-            var tsName = GetTsName(isLowercase);
+            var tsName = GetTsName(genConfig);
             return $"{tsName}{isOptionalStr}: {typeSpecTs}";
         }
 
-        public string ToTsReviverString(string rawPropertyName = null)
+        public string ToTsReviverString(ITsClassGenerationConfig genConfig, string rawPropertyName = null)
         {
             if (rawPropertyName == null)
                 rawPropertyName = $"init.{Name}";
-            if (GetTsAtomicReviver_withMyCustomScriptCheck() == null)
+            if (GetTsAtomicReviver_withMyCustomScriptCheck(genConfig) == null)
                 return null; // NOTE: no atomic revival needed
 
-            return TypeSpec.GetTsFullReviver(rawPropertyName, GetTsAtomicReviver_withMyCustomScriptCheck);
+            return TypeSpec.GetTsFullReviver(genConfig, rawPropertyName, GetTsAtomicReviver_withMyCustomScriptCheck);
         }
 
-        public string GetTsAtomicReviver_withMyCustomScriptCheck(string param = "x")
+        public string GetTsAtomicReviver_withMyCustomScriptCheck(ITsClassGenerationConfig genConfig, string param = "x")
         {
             if (CustomTsReviverScript != null)
                 return CustomTsReviverScript.Replace("$x", param);
-            return TypeSpec.GetTsAtomicReviver(param);
+            return TypeSpec.GetTsAtomicReviver(genConfig, param);
         }
     }
 
@@ -71,49 +72,55 @@ namespace RafaelSoft.TsCodeGen.Models
         public bool IsOptional { get; set; }
         public string TypeNameDictKey { get; set; }
 
-        public string ToTsString()
+        public string ToTsString(ITsClassGenerationConfig genConfig)
         {
             var isArrayStr = IsArray ? "[]" : "";
             var isOptionalStr = IsOptional ? "?" : "";
+            var tsUsageTypeName = IsMine
+                ? genConfig.TransformTsClassName(TypeName)
+                : TypeName;
 
             if (IsDictionaryOfArrays)
-                return $"{{ [id: {TypeNameDictKey}] : {TypeName}[]; }}";
+                return $"{{ [id: {TypeNameDictKey}]: {tsUsageTypeName}[]; }}";
             if (IsDictionary)
-                return $"{{ [id: {TypeNameDictKey}] : {TypeName}; }}";
-            return $"{TypeName}{isArrayStr}";
+                return $"{{ [id: {TypeNameDictKey}]: {tsUsageTypeName}; }}";
+            return $"{tsUsageTypeName}{isArrayStr}";
         }
 
-        public string GetTsAtomicReviver(string param)
+        public string GetTsAtomicReviver(ITsClassGenerationConfig genConfig, string param)
         {
+            var tsUsageTypeName = IsMine
+                ? genConfig.TransformTsClassName(TypeName)
+                : TypeName;
             if (IsEnum)
-                return $"isNaN({param}) ? {TypeName}[{param}] : {param}";
+                return $"isNaN({param}) ? {tsUsageTypeName}[{param}] : {param}";
             if (IsDate)
                 return $"{param} ? new Date({param}) : null";
             if (IsMine)
-                return $"{param} ? new {TypeName}({param}) : null";
+                return $"{param} ? new {tsUsageTypeName}({param}) : null";
             return null;
         }
 
-        public string GetTsFullReviver(string inputParam, Func<string, string> funcBuildAtomicReviver = null)
+        public string GetTsFullReviver(ITsClassGenerationConfig genConfig, string inputParam, Func<ITsClassGenerationConfig, string, string> funcBuildAtomicReviver = null)
         {
             if (funcBuildAtomicReviver == null)
                 funcBuildAtomicReviver = GetTsAtomicReviver;
 
             if (IsDictionaryOfArrays)
-                return $"_.mapValues({inputParam}, y => _.map(y, x => {funcBuildAtomicReviver("x")}))";
+                return $"_.mapValues({inputParam}, y => _.map(y, x => {funcBuildAtomicReviver(genConfig, "x")}))";
             else if (IsDictionary)
-                return $"_.mapValues({inputParam}, x => {funcBuildAtomicReviver("x")})";
+                return $"_.mapValues({inputParam}, x => {funcBuildAtomicReviver(genConfig, "x")})";
             else if (IsArray)
-                return $"_.map({inputParam}, x => {funcBuildAtomicReviver("x")})";
+                return $"_.map({inputParam}, x => {funcBuildAtomicReviver(genConfig, "x")})";
             else if (IsMine)
             {
-                var normalScript = funcBuildAtomicReviver(inputParam);
+                var normalScript = funcBuildAtomicReviver(genConfig,  inputParam);
                 if (normalScript != null && normalScript.Contains("\n"))
-                    return $"({funcBuildAtomicReviver("x")})({inputParam})"; // NOTE: special case: if the script has many lines (AKA custom TS) and not in any lodash construct, it must be invoked
+                    return $"({funcBuildAtomicReviver(genConfig, "x")})({inputParam})"; // NOTE: special case: if the script has many lines (AKA custom TS) and not in any lodash construct, it must be invoked
                 return normalScript;
             }
             else if (IsEnum || IsDate)
-                return funcBuildAtomicReviver(inputParam);
+                return funcBuildAtomicReviver(genConfig, inputParam);
             return null;
         }
     }

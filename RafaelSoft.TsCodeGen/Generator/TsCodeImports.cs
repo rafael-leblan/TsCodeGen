@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -21,7 +21,7 @@ namespace RafaelSoft.TsCodeGen.Generator
         public const string Environment =
             "import { environment } from 'environments/environment';";
         public const string HttpImports =
-            "import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';";
+            "import { HttpClient, HttpHeaders, HttpParams, HttpParameterCodec } from '@angular/common/http';";
         public const string InjectionTokenImports =
             "import { InjectionToken, Inject, Provider } from '@angular/core';";
         public const string toPromise =

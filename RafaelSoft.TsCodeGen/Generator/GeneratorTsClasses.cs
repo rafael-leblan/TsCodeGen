@@ -1,17 +1,21 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using RafaelSoft.TsCodeGen.Common;
 using RafaelSoft.TsCodeGen.Models;
 
 namespace RafaelSoft.TsCodeGen.Generator
 {
-    public class GeneratorTsClasses
+    public class GeneratorTsClasses : ITsClassGenerationConfig
     {
         private TsClassCollection tsClasses;
 
-        public bool IsAllFieldsLowercase { get; set; } = false;
+        //TODO: 04FC4F88: maybe have TsClassGenConfig as a parameter in constructor
+        public string SpecNamePrefix { get; set; } = "";
+        public string SpecNamePostfix { get; set; } = "";
+        public IdentifierCaseType FieldCaseType { get; set; } = IdentifierCaseType.Unchanged;
 
         public GeneratorTsClasses(TsClassCollection tsClasses, TsImportsManager importsManager)
         {
@@ -62,40 +66,34 @@ export enum {spec.Name} {{
             // TODO: spec.ToDebugJson(), add to comments
             // IsEnum: {prop.TypeSpec.IsEnum}, IsMine: {prop.TypeSpec.IsMine}, IsArray: {prop.IsArray}, IsDictionary: {prop.IsDictionary}
 
+            var code_specClassName = this.TransformTsClassName(spec.Name);
             var code_propValues = spec.Properties
-                .Select(prop => $"{prop.ToTsString(IsAllFieldsLowercase)};")
+                .Select(prop => $"{prop.ToTsString(this)};")
                 .StringJoin("\n");
-            var code_extendsSuperclass = spec.NameOfSuperClass.PrefixIfNotEmpty(" extends ");
+            var code_extendsSuperclass = this.TransformTsClassName(spec.NameOfSuperClass).PrefixIfNotEmpty(" extends ");
             var code_callSuperctor = (spec.NameOfSuperClass != null) ? "super(init);" : "";
             var code_passInitIfNoSuper = (spec.NameOfSuperClass == null) ? "init, " : "";
             var code_revivers = spec.Properties
-                .Where(x => x.ToTsReviverString() != null)
-                .Select(prop => $"{prop.GetTsName(IsAllFieldsLowercase)}: {prop.ToTsReviverString("init." + prop.GetTsName(IsAllFieldsLowercase))},")
+                .Where(x => x.ToTsReviverString(this) != null)
+                .Select(prop => $"{prop.GetTsName(this)}: {prop.ToTsReviverString(this, "init." + prop.GetTsName(this))},")
                 .StringJoin("\n");
-            var code_constructor = $@"constructor(init?:Partial<{spec.Name}>) {{
+            var code_constructor = $@"constructor(init?: Partial<{code_specClassName}>) {{
   {code_callSuperctor}
   Object.assign(this, {code_passInitIfNoSuper}{{
     {code_revivers.IndentEveryLine("    ", skipFirst: true)}
   }});
 }}";
 
+            // TODO: endpointClass.ToDebugJson() in comments
             return $@"
 /**
  * Source class: {spec.OriginalBackendType.FullName}
- * TODO: endpointClass.ToDebugJson()
  */
-export class {spec.Name}{code_extendsSuperclass} {{
+export class {code_specClassName}{code_extendsSuperclass} {{
   {code_propValues.IndentEveryLine("  ", skipFirst: true)}
 
   {code_constructor.RemoveEmptyLines().IndentEveryLine("  ", skipFirst: true)}
 }}";
-        }
-
-        public string GetPropertyName(Type paramType, string name)
-        {
-            var spec = tsClasses.CompiledTsClasses.FirstOrDefault(x => x.OriginalBackendType == paramType);
-            var prop = spec.Properties.FirstOrDefault(x => x.Name == name);
-            return prop.GetTsName(IsAllFieldsLowercase);
         }
     }
 }

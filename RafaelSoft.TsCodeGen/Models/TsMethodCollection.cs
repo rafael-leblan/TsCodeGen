@@ -1,9 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using RafaelSoft.TsCodeGen.Common;
 
 namespace RafaelSoft.TsCodeGen.Models
 {
@@ -34,10 +35,11 @@ namespace RafaelSoft.TsCodeGen.Models
                 {
                     MethodName = reflex.Name,
                     ReturnType = reflex.ReturnType,
-                    ParamSpecs = reflex.GetParameters().Select(reflexPara => new TsMethodParamSpec(classes)
+                    ParamSpecs = reflex.GetParameters().Select(reflexPara => new TsMethodParamSpec()
                     {
                         ParamName = reflexPara.Name,
-                        ParamType = reflexPara.ParameterType
+                        ParamType = reflexPara.ParameterType,
+                        ParamTypeTsSpec = classes.CreateTypeSpecComplex(reflexPara.ParameterType),
                     }).ToArray()
                 });
             }
@@ -55,18 +57,21 @@ namespace RafaelSoft.TsCodeGen.Models
         public TsMethodParamSpec[] ParamSpecs { get; set; }
         public Type ReturnType { get; set; }
 
-        public string TsReturnTypeName => classes.GetTypeSpecComplex(ReturnType).ToTsString();
+        //public string TsReturnTypeName => classes.CreateTypeSpecComplex(ReturnType).ToTsString();
     }
 
     public class TsMethodParamSpec
     {
-        private TsClassCollection classes;
-        public TsMethodParamSpec(TsClassCollection classes) { this.classes = classes; }
+        public TsMethodParamSpec() {}
 
         public string ParamName { get; set; }
         public Type ParamType { get; set; }
+        public TsCsTypeSpec ParamTypeTsSpec { get; set; }
 
-        public string TsParamTypeName => classes.GetTypeSpecComplex(ParamType).ToTsString();
-        public string TsParamTypeReviver(string paramName) => classes.GetTypeSpecComplex(ParamType).GetTsFullReviver(paramName);
+        public string GetTsParamTypeName(ITsClassGenerationConfig tsGenConfig) =>
+            ParamTypeTsSpec.ToTsString(tsGenConfig);
+
+        public string TsParamTypeReviver(ITsClassGenerationConfig tsGenConfig, string paramName) =>
+            ParamTypeTsSpec.GetTsFullReviver(tsGenConfig, paramName);
     }
 }

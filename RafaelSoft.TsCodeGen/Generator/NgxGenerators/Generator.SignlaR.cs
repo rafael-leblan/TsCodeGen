@@ -1,10 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+using System;
 using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
-using RafaelSoft.TsCodeGen.Generator;
+using RafaelSoft.TsCodeGen.Common;
 using RafaelSoft.TsCodeGen.Models;
 
 namespace RafaelSoft.TsCodeGen.Generator.NgxGenerators
@@ -23,6 +19,7 @@ namespace RafaelSoft.TsCodeGen.Generator.NgxGenerators
         public string AngularClassName { get; set; } = "SignalRService";
         public string SignalRHubName { get; set; } = "hub";
         public long ReconnectRetryDelayMs { get; set; } = 3000;
+        public ITsClassGenerationConfig TsClassGenConfig { get; set; } = new TsClassGenerationManualConfig(); // NOTE: default
 
         public GeneratorNgxSignalR(TsImportsManager importsManager)
         {
@@ -135,7 +132,7 @@ export class {AngularClassName} implements I{AngularClassName} {{
         private string Generate_invocation_interface(TsMethodSpec spec)
         {
             var paramsStrWithType = spec.ParamSpecs
-                .Select(p => $"{p.ParamName}:{p.TsParamTypeName}")
+                .Select(p => $"{p.ParamName}:{p.GetTsParamTypeName(TsClassGenConfig)}")
                 .StringJoin(", ");
             return $@"signalR_{spec.MethodName}({paramsStrWithType});";
         }
@@ -143,7 +140,7 @@ export class {AngularClassName} implements I{AngularClassName} {{
         private string Generate_invocation(TsMethodSpec spec)
         {
             var paramsStrWithType = spec.ParamSpecs
-                .Select(p => $"{p.ParamName}:{p.TsParamTypeName}")
+                .Select(p => $"{p.ParamName}:{p.GetTsParamTypeName(TsClassGenConfig)}")
                 .StringJoin(", ");
             var paramsStr = spec.ParamSpecs
                 .Select(p => p.ParamName)
@@ -159,14 +156,14 @@ public signalR_{spec.MethodName}({paramsStrWithType}) {{
             if (spec.ParamSpecs.Length > 1)
                 throw new ArgumentException($"Angular invocation method should only have 1 param, because Subject<T> takes 1 param. Method: {spec.MethodName}");
             var param1 = spec.ParamSpecs[0];
-            return $"readonly event_{spec.MethodName}:Subject<{param1.TsParamTypeName}>;";
+            return $"readonly event_{spec.MethodName}:Subject<{param1.GetTsParamTypeName(TsClassGenConfig)}>;";
         }
         private string Generate_sigRPushSubjectField(TsMethodSpec spec)
         {
             if (spec.ParamSpecs.Length > 1)
                 throw new ArgumentException($"Angular invocation method should only have 1 param, because Subject<T> takes 1 param. Method: {spec.MethodName}");
             var param1 = spec.ParamSpecs[0];
-            return $"public readonly event_{spec.MethodName}:Subject<{param1.TsParamTypeName}> = new Subject<{param1.TsParamTypeName}>();";
+            return $"public readonly event_{spec.MethodName}:Subject<{param1.GetTsParamTypeName(TsClassGenConfig)}> = new Subject<{param1.GetTsParamTypeName(TsClassGenConfig)}>();";
         }
         private string Generate_sigRPushCode(TsMethodSpec spec)
         {
@@ -174,7 +171,7 @@ public signalR_{spec.MethodName}({paramsStrWithType}) {{
                 throw new ArgumentException($"Angular invocation method should only have 1 param, because Subject<T> takes 1 param. Method: {spec.MethodName}");
             var param1 = spec.ParamSpecs[0];
             return $@"
-this.proxy.on('{spec.MethodName}', ({param1.ParamName}:{param1.TsParamTypeName}) => {{
+this.proxy.on('{spec.MethodName}', ({param1.ParamName}:{param1.GetTsParamTypeName(TsClassGenConfig)}) => {{
   this.ngZone.run(() => {{
     //console.log('SignalR:{spec.MethodName}', {param1.ParamName});
     this.event_{spec.MethodName}.next({param1.ParamName});

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -152,13 +152,13 @@ namespace RafaelSoft.TsCodeGen.WebApi.Models
             // some post-processing to link EndpointMethods and classes
             foreach (var methodSpec in apiSpecs)
             {
-                methodSpec.ResponseTypeSpec = classes.GetTypeSpecComplex(methodSpec.ResponseType);
+                methodSpec.ResponseTypeSpec = classes.CreateTypeSpecComplex(methodSpec.ResponseType);
                 foreach (var param in methodSpec.UriParams)
-                    param.ParamTypeTsString = classes.GetTypeSpecComplex(param.ParamType).ToTsString();
+                    param.ParamTypeTsSpec = classes.CreateTypeSpecComplex(param.ParamType);
                 foreach (var param in methodSpec.BodyParams)
-                    param.ParamTypeTsString = classes.GetTypeSpecComplex(param.ParamType).ToTsString();
+                    param.ParamTypeTsSpec = classes.CreateTypeSpecComplex(param.ParamType);
                 if (methodSpec.UriParamsWrapperClass != null)
-                    methodSpec.UriParamsWrapperClass.ParamTypeTsString = classes.GetTypeSpecComplex(methodSpec.UriParamsWrapperClass.ParamType).ToTsString();
+                    methodSpec.UriParamsWrapperClass.ParamTypeTsSpec = classes.CreateTypeSpecComplex(methodSpec.UriParamsWrapperClass.ParamType);
             }
         }
 

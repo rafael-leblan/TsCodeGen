@@ -1,26 +1,31 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
-using RafaelSoft.TsCodeGen.Generator;
+using RafaelSoft.TsCodeGen.Common;
 
 namespace RafaelSoft.TsCodeGen.Models
 {
+    public sealed class TsCommonTypeNames
+    {
+        public const string Void = "void";
+        public const string Any = "any";
+    }
+
     public class TsClassCollection
     {
         private Dictionary<string, Type> typesViaFullName = new Dictionary<string, Type>();
-        private Dictionary<string, Type> typesViaShortName = new Dictionary<string, Type>();
-        private Dictionary<string, string> mapFullName2ShortName = new Dictionary<string, string>();
         private List<TsClassSpec> compiledTsClasses = null;
 
         // configurable properties
         public IEnumerable<Type> IgnoreTheseTypesCustom { get; set; } = Enumerable.Empty<Type>();
 
         public int Count => typesViaFullName.Count;
+        public bool HasType(Type type) => typesViaFullName.ContainsKey(type.FullName);
+        public List<TsClassSpec> CompiledTsClasses => compiledTsClasses;
+
 
         public void AddType(Type type)
         {
@@ -55,7 +60,7 @@ namespace RafaelSoft.TsCodeGen.Models
             // if all the above checks passed, we can proceed
             if (!typesViaFullName.ContainsKey(type.FullName))
             {
-                Debug.WriteLine($"RafaelSoft.TsCodeGen> AddType {type.FullName}");
+                Debug.WriteLine($"TSCODEGEN> AddType {type.FullName}");
                 typesViaFullName.Add(type.FullName, type);
             }
 
@@ -67,8 +72,6 @@ namespace RafaelSoft.TsCodeGen.Models
                     AddType(typeImplementation);
             }
         }
-
-        public bool HasType(Type type) =>  typesViaFullName.ContainsKey(type.FullName);
 
         private IEnumerable<Type> GetExplicitlyMentionedInheritingTypes(Type type)
         {
@@ -84,15 +87,14 @@ namespace RafaelSoft.TsCodeGen.Models
             const int maxDepth = 50;
             for (int i = 0; i < maxDepth; i++)
             {
-                Debug.WriteLine($"RafaelSoft.TsCodeGen> InspectClassInternalsOneLevel ({i+1}/{maxDepth})");
+                Debug.WriteLine($"TSCODEGEN> InspectClassInternalsOneLevel ({i+1}/{maxDepth})");
                 var prevCount = Count;
                 InspectClassInternalsOneLevel();
                 if (Count == prevCount)
                     break;
             }
 
-            typesViaFullName.RemapWithUniqueKeys(typesViaShortName, mapFullName2ShortName, (oldKey, ttt) => ttt.GetFriendlyClassName());
-
+            var typesViaShortName = typesViaFullName.RemapWithUniqueKeys((oldKey, ttt) => ttt.GetFriendlyClassName());
             var specArray = typesViaShortName
                 .OrderBy(kv => kv.Key)
                 .Select(kv => BuildTsClassSpec(kv.Key, kv.Value))
@@ -104,7 +106,10 @@ namespace RafaelSoft.TsCodeGen.Models
             compiledTsClasses = specArray.ToList();
         }
 
-        public List<TsClassSpec> CompiledTsClasses => compiledTsClasses;
+        public TsClassSpec GetCompiledTsClassSpecByName(string className) =>
+            CompiledTsClasses.FirstOrDefault(x => className == x.Name);
+        public TsClassSpec GetCompiledTsClassSpecByType(Type type) =>
+            CompiledTsClasses.FirstOrDefault(x => type == x.OriginalBackendType);
 
         private void InspectClassInternalsOneLevel()
         {
@@ -117,7 +122,7 @@ namespace RafaelSoft.TsCodeGen.Models
                     var oldCount = Count;
                     AddType(pInfo.PropertyType);
                     if (oldCount != Count)
-                        Debug.WriteLine($"RafaelSoft.TsCodeGen>   --> from property {pInfo.Name} of {typeObj.FullName}");
+                        Debug.WriteLine($"TSCODEGEN>   --> from property {pInfo.Name} of {typeObj.FullName}");
                 }
             }
         }
@@ -207,7 +212,7 @@ namespace RafaelSoft.TsCodeGen.Models
             if (baseType == null)
                 return null;
             if (typesViaFullName.ContainsKey(baseType.FullName))
-                return mapFullName2ShortName[baseType.FullName];
+                return baseType.GetFriendlyClassName();
             return null;
         }
 
@@ -221,7 +226,7 @@ namespace RafaelSoft.TsCodeGen.Models
             var propSpec = new TsClassSpecProperty
             {
                 Name = customNameJsonPropertyAttribute?.PropertyName ?? pInfo.Name,
-                TypeSpec = GetTypeSpecComplex(propertyType, new TsCsTypeSpecOptions
+                TypeSpec = CreateTypeSpecComplex(propertyType, new TsCsTypeSpecOptions
                 {
                     TypeName = tsModelTypeAttributeAttribute?.TypeName
                 }),
@@ -231,10 +236,11 @@ namespace RafaelSoft.TsCodeGen.Models
             return propSpec;
         }
 
-        public TsCsTypeSpec GetTypeSpecComplex(Type propertyType, TsCsTypeSpecOptions options = null)
+        public TsCsTypeSpec CreateTypeSpecComplex(Type propertyType, TsCsTypeSpecOptions options = null)
         {
+            // NOTE: if given type is null, it was a void
             if (propertyType == null)
-                return new TsCsTypeSpec { TypeName = "void" };
+                return new TsCsTypeSpec { TypeName = TsCommonTypeNames.Void };
             // unwrap Nullable and IEnumerable generics.
             // when Nullable make that prop optional in TS AKA: name2?: string;
             if (propertyType.IsGenericType)
@@ -242,14 +248,14 @@ namespace RafaelSoft.TsCodeGen.Models
                 if (propertyType.GetGenericTypeDefinition() == typeof(Nullable<>))
                 {
                     var innerType = propertyType.GenericTypeArguments.FirstOrDefault();
-                    var typeSpec = GetTypeSpecBasic(innerType, options);
+                    var typeSpec = CreateTypeSpecBasic(innerType, options);
                     typeSpec.IsOptional = true;
                     return typeSpec;
                 }
                 else if (EnumerableTypes.Contains(propertyType.GetGenericTypeDefinition()))
                 {
                     var innerType = propertyType.GenericTypeArguments.FirstOrDefault();
-                    var typeSpec = GetTypeSpecBasic(innerType, options);
+                    var typeSpec = CreateTypeSpecBasic(innerType, options);
                     typeSpec.IsArray = true;
                     return typeSpec;
                 }
@@ -257,7 +263,7 @@ namespace RafaelSoft.TsCodeGen.Models
                 {
                     var keyType = propertyType.GenericTypeArguments.FirstOrDefault();
                     var valueType = propertyType.GenericTypeArguments.Skip(1).FirstOrDefault();
-                    var typeSpec = GetTypeSpecComplex(valueType, options);
+                    var typeSpec = CreateTypeSpecComplex(valueType, options);
                     if (typeSpec.IsArray)
                     {
                         typeSpec.IsArray = false;
@@ -272,15 +278,15 @@ namespace RafaelSoft.TsCodeGen.Models
             else if (propertyType.IsArray)
             {
                 var elemType = propertyType.GetElementType();
-                var typeSpec = GetTypeSpecBasic(elemType, options);
+                var typeSpec = CreateTypeSpecBasic(elemType, options);
                 typeSpec.IsArray = true;
                 return typeSpec;
             }
             // not generic, not array
-            return GetTypeSpecBasic(propertyType, options);
+            return CreateTypeSpecBasic(propertyType, options);
         }
 
-        private TsCsTypeSpec GetTypeSpecBasic(Type propertyType, TsCsTypeSpecOptions options)
+        private TsCsTypeSpec CreateTypeSpecBasic(Type propertyType, TsCsTypeSpecOptions options)
         {
             if (propertyType.IsGenericType && StandardGeneric.Contains(propertyType.GetGenericTypeDefinition()))
                 propertyType = propertyType.GenericTypeArguments.FirstOrDefault();
@@ -288,21 +294,21 @@ namespace RafaelSoft.TsCodeGen.Models
             // Enumerable (TODO: this should nbever be called should it?)
             if (propertyType.IsGenericType && EnumerableTypes.Contains(propertyType.GetGenericTypeDefinition()))
             {
-                var genArgumentSpec = GetTypeSpecBasic(propertyType.GenericTypeArguments.FirstOrDefault(), options);
+                var genArgumentSpec = CreateTypeSpecBasic(propertyType.GenericTypeArguments.FirstOrDefault(), options);
                 genArgumentSpec.TypeName = genArgumentSpec.TypeName + "[]";
                 return genArgumentSpec;
             }
 
-            var typeSpec = new TsCsTypeSpec { TypeName = "void" }; // NOTE: this will be determined later, there should be no voids in the final result!!!!
+            var typeSpec = new TsCsTypeSpec { TypeName = TsCommonTypeNames.Any }; // NOTE: this will be determined later, there should be no voids in the final result!!!!
 
             if (options?.TypeName != null)
                 typeSpec.TypeName = options?.TypeName;
             else if(StandardTypeMap.ContainsKey(propertyType))
                 typeSpec.TypeName = StandardTypeMap[propertyType];
-            else if (mapFullName2ShortName.ContainsKey(propertyType.FullName))
-                typeSpec.TypeName = mapFullName2ShortName[propertyType.FullName];
+            else if (typesViaFullName.ContainsKey(propertyType.FullName))
+                typeSpec.TypeName = propertyType.GetFriendlyClassName();
 
-            if (mapFullName2ShortName.ContainsKey(propertyType.FullName))
+            if (typesViaFullName.ContainsKey(propertyType.FullName))
                 typeSpec.IsMine = true;
             if (propertyType.IsEnum)
             {
@@ -326,6 +332,7 @@ namespace RafaelSoft.TsCodeGen.Models
 
         private readonly Dictionary<Type, string> StandardTypeMap = new Dictionary<Type, string>
         {
+            { typeof(void), TsCommonTypeNames.Void },
             { typeof(string), "string" },
             { typeof(Guid), "string" },
             { typeof(DateTime), "Date" },

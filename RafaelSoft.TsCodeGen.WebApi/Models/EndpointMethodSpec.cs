@@ -1,8 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using RafaelSoft.TsCodeGen.Common;
 using RafaelSoft.TsCodeGen.Generator;
 using RafaelSoft.TsCodeGen.Models;
 using RafaelSoft.TsCodeGen.WebApi.Gen;
@@ -36,26 +37,26 @@ namespace RafaelSoft.TsCodeGen.WebApi.Models
                     .Union(BodyParams)
                     .Union(UriParams.Where(para => para.IsOptional));
 
-        public string DebugString => $@"
+        public string DebugString(ITsClassGenerationConfig genConfig) => $@"
 HttpMethod: {HttpMethod}
 UrlFull: {DocUrlFull}
 UrlVar:  {UrlTsFriendly}
-ResponseType: {ResponseTypeSpec.ToTsString()}
+ResponseType: {ResponseTypeSpec.ToTsString(genConfig)}
 UriParams:
 {string.Join("\n", UriParams.Select(x => " - " + x.DebugString))}
 BodyParams:
 {string.Join("\n", BodyParams.Select(x => " - " + x.DebugString))}
 ";
 
-        public string BuildTsReviverString(string param = "response")
+        public string BuildTsReviverString(ITsClassGenerationConfig genConfig, string param = "response")
         {
-            if (ResponseTypeSpec.GetTsAtomicReviver(param) == null)
+            if (ResponseTypeSpec.GetTsAtomicReviver(genConfig, param) == null)
                 return null; // NOTE: no atomic revival needed
 
             // TODO: maybe in the future we will have custom revivers on some of the EndpointMethodSpec
             //if (ResponseTypeSpec.IsMine && CustomTsReviverScript != null)
             //    return $"({GetTsAtomicReviver_withMyCustomScriptCheck("x")})({param})"; // NOTE: special case: custom TS reviver script must be treated/invoked like a lambda
-            return ResponseTypeSpec.GetTsFullReviver(param);
+            return ResponseTypeSpec.GetTsFullReviver(genConfig, param);
         }
     }
 
@@ -73,9 +74,16 @@ BodyParams:
         public string Name { get; set; }
         public bool IsOptional { get; set; }
         public Type ParamType { get; set; }
-        public string ParamTypeTsString { get; set; }
+        public TsCsTypeSpec ParamTypeTsSpec { get; set; }
 
-        public string DebugString => $"{Name}:{ParamTypeTsString}:{IsOptional.ToString("optional", "required")}";
+        public string GetParamTsString_Type(ITsClassGenerationConfig tsGenConfig) =>
+            ParamTypeTsSpec.ToTsString(tsGenConfig);
+
+        public string GetParamTsString_Name(ITsClassGenerationConfig tsGenConfig) =>
+            Name.IdentifierConvertCase(tsGenConfig.FieldCaseType);
+
+        public string DebugString =>
+            $"{Name}:{ParamTypeTsSpec.TypeName}{ParamTypeTsSpec.RequiresLodashMapping().ToString("[]", "")}:{IsOptional.ToString("optional", "required")}";
     }
 
     public class EndpointRequestHttpParamParamSpec
