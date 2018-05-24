@@ -2,7 +2,7 @@
 <package >
   <metadata>
     <id>RafaelSoft.TsCodeGen.WebApi</id>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
     <authors>Rafael Leblan</authors>
     <owners>Rafael Leblan</owners>
     <licenseUrl>https://opensource.org/licenses/FPL-1.0.0</licenseUrl>
@@ -10,7 +10,7 @@
     <iconUrl>https://avatars1.githubusercontent.com/u/35584563?s=150</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Generate typescript from C# classes. WebApi-specific</description>
-    <releaseNotes>Initial draft</releaseNotes>
+    <releaseNotes>type fixes, mapping, ts customization</releaseNotes>
     <copyright>Copyright 2018</copyright>
     <tags>typescript</tags>
     <dependencies>
