@@ -36,18 +36,23 @@ namespace RafaelSoft.TsCodeGen.Generator.NgxGenerators
         {
             var code_makeRootProviders = NgxTsSnippets.Service_makeRootProviders(AngularClassName);
             var code_requestCalls_interface = HubInterface.Methods
+                .ConditionallyIf(TsClassGenConfig.SortMethodsAlphabetically, thisLinq => thisLinq.OrderBy(m => m.MethodName))
                 .Select(Generate_invocation_interface)
                 .StringJoin("\n");
             var code_requestCalls = HubInterface.Methods
+                .ConditionallyIf(TsClassGenConfig.SortMethodsAlphabetically, thisLinq => thisLinq.OrderBy(m => m.MethodName))
                 .Select(Generate_invocation)
                 .StringJoin("\n");
             var code_sigRPushesSubjectFields_interface = ConsumerInterface.Methods
-               .Select(Generate_sigRPushSubjectField_interface)
-               .StringJoin("\n");
+                .ConditionallyIf(TsClassGenConfig.SortMethodsAlphabetically, thisLinq => thisLinq.OrderBy(m => m.MethodName))
+                .Select(Generate_sigRPushSubjectField_interface)
+                .StringJoin("\n");
             var code_sigRPushesSubjectFields = ConsumerInterface.Methods
-               .Select(Generate_sigRPushSubjectField)
-               .StringJoin("\n");
+                .ConditionallyIf(TsClassGenConfig.SortMethodsAlphabetically, thisLinq => thisLinq.OrderBy(m => m.MethodName))
+                .Select(Generate_sigRPushSubjectField)
+                .StringJoin("\n");
             var code_sigRPushes = ConsumerInterface.Methods
+                .ConditionallyIf(TsClassGenConfig.SortMethodsAlphabetically, thisLinq => thisLinq.OrderBy(m => m.MethodName))
                 .Select(Generate_sigRPushCode)
                 .StringJoin("\n");
             return $@"
@@ -67,8 +72,7 @@ export class {AngularClassName} implements I{AngularClassName} {{
   public readonly HubName:string = '{SignalRHubName}';
   public readonly ReconnectRetryDelayMs:number = {ReconnectRetryDelayMs};
   
-  private connection: SignalR.Hub.Connection;
-  proxy: SignalR.Hub.Proxy;
+  private connection: SignalR.HubConnection;
   _isConnected: boolean = false;
 
   public readonly event_connectivityChanged:Subject<void> = new Subject<void>();
@@ -79,43 +83,46 @@ export class {AngularClassName} implements I{AngularClassName} {{
     private apiUrlPrefix: string,
     private ngZone: NgZone,
   ) {{
-    this.connection = $.hubConnection(apiUrlPrefix, {{useDefaultPath: false}});
-    this.proxy = this.connection.createHubProxy(this.HubName);
+    this.connection = new SignalR.HubConnectionBuilder()
+      .withUrl(apiUrlPrefix +'/'+ this.HubName)
+      .configureLogging(SignalR.LogLevel.Information)
+      .build();
     
     { code_sigRPushes.Trim().IndentEveryLine("    ", skipFirst: true) }
     
-    this.connection.stateChanged(change => {{
-      //console.log(`SignalR state change: old(${{change.oldState}}) --> new(${{change.newState}})`);
-      if (change.newState == SignalRConnectionState.Disconnected) {{
-        this.setMyConnectivityFlag(false);
-        setTimeout(() => {{
-          this.startConnection();
-        }}, this.ReconnectRetryDelayMs);
-      }}
+    this.connection.onclose(error => {{
+      // connection was closed so start the reconnect attempt
+      this.setMyConnectivityFlag(false);
+      setTimeout(() => {{
+        this.startConnection();
+      }}, this.ReconnectRetryDelayMs);
     }});
 
-    this.startConnection();
+    // NOTE: need to call startConnection manually
+    //this.startConnection();
   }}
 
   //-------------------- publics -----------------------
+
+  public startConnection() {{
+    this.connection.start().then(() => {{
+      //console.log('SignalR Connected successfully');
+      this.setMyConnectivityFlag(true);
+    }});
+  }}
 
   public isConnected():boolean {{
     return this._isConnected;
   }}
 
   public getConnectionId():string {{
-    return this.proxy.connection.id;
+    //return this.proxy.connection.id;
+    return 'TODO: 907f289c: find how to return connection id';
   }}
 
   { code_requestCalls.Trim().IndentEveryLine("  ", skipFirst: true) }
 
   //-------------------- privates -----------------------
-
-  private startConnection() {{
-    this.connection.start().done(() => {{
-      this.setMyConnectivityFlag(true);
-    }});
-  }}
 
   private setMyConnectivityFlag(flag:boolean) {{
     if (flag != this._isConnected) {{
@@ -147,7 +154,7 @@ export class {AngularClassName} implements I{AngularClassName} {{
                 .StringJoin(", ");
             return $@"
 public signalR_{spec.MethodName}({paramsStrWithType}) {{
-  this.proxy.invoke('{spec.MethodName}', {paramsStr});
+  this.connection.invoke('{spec.MethodName}', {paramsStr});
 }}";
         }
 
@@ -171,7 +178,7 @@ public signalR_{spec.MethodName}({paramsStrWithType}) {{
                 throw new ArgumentException($"Angular invocation method should only have 1 param, because Subject<T> takes 1 param. Method: {spec.MethodName}");
             var param1 = spec.ParamSpecs[0];
             return $@"
-this.proxy.on('{spec.MethodName}', ({param1.ParamName}:{param1.GetTsParamTypeName(TsClassGenConfig)}) => {{
+this.connection.on('{spec.MethodName}', ({param1.ParamName}:{param1.GetTsParamTypeName(TsClassGenConfig)}) => {{
   this.ngZone.run(() => {{
     //console.log('SignalR:{spec.MethodName}', {param1.ParamName});
     this.event_{spec.MethodName}.next({param1.ParamName});

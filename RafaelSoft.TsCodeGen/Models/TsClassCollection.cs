@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using RafaelSoft.TsCodeGen.Common;
+using RafaelSoft.TsCodeGen.Services;
 
 namespace RafaelSoft.TsCodeGen.Models
 {
@@ -17,17 +18,27 @@ namespace RafaelSoft.TsCodeGen.Models
     public class TsClassCollection
     {
         private Dictionary<string, Type> typesViaFullName = new Dictionary<string, Type>();
-        private List<TsClassSpec> compiledTsClasses = null;
+
+        private readonly ITsCodeGenLogger tsLogger;
 
         // configurable properties
         public IEnumerable<Type> IgnoreTheseTypesCustom { get; set; } = Enumerable.Empty<Type>();
-
         public int Count => typesViaFullName.Count;
         public bool HasType(Type type) => typesViaFullName.ContainsKey(type.FullName);
-        public List<TsClassSpec> CompiledTsClasses => compiledTsClasses;
+        public TsClassSpec[] CompiledTsClasses { get; private set; }
 
+        public TsClassCollection(ITsCodeGenLogger tsLogger)
+        {
+            this.tsLogger = tsLogger;
+        }
 
-        public void AddType(Type type)
+        public void AddType(Type type, AddTypeReasonType reason)
+            => AddType(type, new CodeGenLoggerAddTypeEntry
+            {
+                Reason = reason
+            });
+
+        public void AddType(Type type, CodeGenLoggerAddTypeEntry logReason)
         {
             var name4debug = type.FullName; // NOTE: .NET debugger does not allow conditional breakpoints with reflection code
 
@@ -38,15 +49,15 @@ namespace RafaelSoft.TsCodeGen.Models
                     EnumerableTypes.Contains(type.GetGenericTypeDefinition()))
                 {
                     var innerType = type.GenericTypeArguments.FirstOrDefault();
-                    AddType(innerType);
+                    AddType(innerType, logReason);
                     return;
                 }
                 if (DictionaryTypes.Contains(type.GetGenericTypeDefinition()))
                 {
                     var keyType = type.GenericTypeArguments.FirstOrDefault();
                     var valueType = type.GenericTypeArguments.Skip(1).FirstOrDefault();
-                    AddType(keyType);
-                    AddType(valueType);
+                    AddType(keyType, logReason);
+                    AddType(valueType, logReason);
                     return;
                 }
             }
@@ -60,7 +71,8 @@ namespace RafaelSoft.TsCodeGen.Models
             // if all the above checks passed, we can proceed
             if (!typesViaFullName.ContainsKey(type.FullName))
             {
-                Debug.WriteLine($"TSCODEGEN> AddType {type.FullName}");
+                logReason.TypeName = type.FullName; // NOTE: it is assumed TypeName is not set by callers of `AddType`, it is only set here, immediately before `LogAddType`
+                tsLogger.LogAddType(logReason);
                 typesViaFullName.Add(type.FullName, type);
             }
 
@@ -69,7 +81,11 @@ namespace RafaelSoft.TsCodeGen.Models
             if (explicitlyMentionedInheritingTypes.Any())
             {
                 foreach (var typeImplementation in explicitlyMentionedInheritingTypes)
-                    AddType(typeImplementation);
+                    AddType(typeImplementation, new CodeGenLoggerAddTypeEntry
+                    {
+                        Reason = AddTypeReasonType.ExplicitlyMentionedInheritingTypes,
+                        OfType = type.FullName,
+                    });
             }
         }
 
@@ -87,23 +103,25 @@ namespace RafaelSoft.TsCodeGen.Models
             const int maxDepth = 50;
             for (int i = 0; i < maxDepth; i++)
             {
-                Debug.WriteLine($"TSCODEGEN> InspectClassInternalsOneLevel ({i+1}/{maxDepth})");
+                //tsLogger.LogText($"InspectClassInternalsOneLevel ({i+1}/{maxDepth})");
                 var prevCount = Count;
                 InspectClassInternalsOneLevel();
                 if (Count == prevCount)
                     break;
             }
 
-            var typesViaShortName = typesViaFullName.RemapWithUniqueKeys((oldKey, ttt) => ttt.GetFriendlyClassName());
+            var typesViaShortName = typesViaFullName.RemapWithUniqueKeys((oldKey, ttt) => ttt.GetFriendlyClassName());
+
             var specArray = typesViaShortName
-                .OrderBy(kv => kv.Key)
+                .OrderBy(kv => kv.Key) // NOTE: a3c189f5: we have custom sorting here. 1 - alphabetically by "Key"
                 .Select(kv => BuildTsClassSpec(kv.Key, kv.Value))
                 .ToArray();
 
+            // NOTE: a3c189f5: we have custom sorting here. 2 - need to put SuperClass above child classes
             specArray.SortByDependencyParentsEarlier(
                 child => child.NameOfSuperClass != null,
                 (child, parent) => child.NameOfSuperClass == parent.Name);
-            compiledTsClasses = specArray.ToList();
+            CompiledTsClasses = specArray;
         }
 
         public TsClassSpec GetCompiledTsClassSpecByName(string className) =>
@@ -120,9 +138,12 @@ namespace RafaelSoft.TsCodeGen.Models
                 foreach (var pInfo in properties)
                 {
                     var oldCount = Count;
-                    AddType(pInfo.PropertyType);
-                    if (oldCount != Count)
-                        Debug.WriteLine($"TSCODEGEN>   --> from property {pInfo.Name} of {typeObj.FullName}");
+                    AddType(pInfo.PropertyType, new CodeGenLoggerAddTypeEntry
+                    {
+                        Reason = AddTypeReasonType.PropertyOf,
+                        PropertyOrParam = pInfo.Name,
+                        OfType = typeObj.FullName,
+                    });
                 }
             }
         }
@@ -330,6 +351,8 @@ namespace RafaelSoft.TsCodeGen.Models
             return "string";
         }
 
+        //================================================================================================================================================================
+
         private readonly Dictionary<Type, string> StandardTypeMap = new Dictionary<Type, string>
         {
             { typeof(void), TsCommonTypeNames.Void },
@@ -382,6 +405,7 @@ namespace RafaelSoft.TsCodeGen.Models
             typeof(float[]),
             typeof(double[]),
             typeof(Type),
+            typeof(System.Threading.Tasks.Task),
         };
 
         private readonly List<Type> NumericTypes = new List<Type>

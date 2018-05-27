@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using RafaelSoft.TsCodeGen.Common;
+using RafaelSoft.TsCodeGen.Services;
 
 namespace RafaelSoft.TsCodeGen.Models
 {
@@ -28,9 +29,18 @@ namespace RafaelSoft.TsCodeGen.Models
 
             foreach (var reflex in reflectMethods)
             {
-                classes.AddType(reflex.ReturnType);
+                classes.AddType(reflex.ReturnType, new CodeGenLoggerAddTypeEntry
+                {
+                    Reason = AddTypeReasonType.FromInterfaceReturnType,
+                    OfMethod = reflex.Name,
+                });
                 foreach (var reflexPara in reflex.GetParameters())
-                    classes.AddType(reflexPara.ParameterType);
+                    classes.AddType(reflexPara.ParameterType, new CodeGenLoggerAddTypeEntry
+                    {
+                        Reason = AddTypeReasonType.FromInterfaceParam,
+                        PropertyOrParam = reflexPara.Name,
+                        OfMethod = reflex.Name,
+                    });
                 result.methods.Add(new TsMethodSpec(classes)
                 {
                     MethodName = reflex.Name,

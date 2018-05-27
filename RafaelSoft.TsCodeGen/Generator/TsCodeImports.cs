@@ -15,18 +15,20 @@ namespace RafaelSoft.TsCodeGen.Generator
         public const string NgZone =
             "import { NgZone } from '@angular/core';";
         public const string Subject =
-            "import { Subject } from 'rxjs/Subject';";
+            "import { Subject } from 'rxjs';";
         public const string Signalr =
-            "import 'signalr';";
+            "import * as SignalR from '@aspnet/signalr';";
         public const string Environment =
             "import { environment } from 'environments/environment';";
         public const string HttpImports =
             "import { HttpClient, HttpHeaders, HttpParams, HttpParameterCodec } from '@angular/common/http';";
         public const string InjectionTokenImports =
             "import { InjectionToken, Inject, Provider } from '@angular/core';";
-        public const string toPromise =
-            "import 'rxjs/add/operator/toPromise';";
-        
+        public const string rxjs_take =
+            "import { take } from 'rxjs/operators';";
+        public const string ionicNativeHttp =
+            "import { HTTP } from '@ionic-native/http';";
+
 
     }
 }

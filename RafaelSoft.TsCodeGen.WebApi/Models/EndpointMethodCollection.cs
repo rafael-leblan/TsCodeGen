@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -11,6 +12,7 @@ using System.Threading.Tasks;
 using System.Web.Http; // LESSON: need to install Microsoft.AspNet.WebApi.Core for this
 using System.Web.Http.Description;
 using RafaelSoft.TsCodeGen.Models;
+using RafaelSoft.TsCodeGen.Services;
 using RafaelSoft.TsCodeGen.WebApi.Models;
 using RafaelSoft.TsCodeGen.WebApi.WebUtils;
 using RafaelSoft.TsCodeGen.WebApi.WebUtils.SampleGeneration;
@@ -26,10 +28,11 @@ namespace RafaelSoft.TsCodeGen.WebApi.Models
             typeof(IHttpActionResult),
             typeof(HttpStatusCode),
         };
-
-        private TsClassCollection classes;
-        private HttpConfiguration httpConfig;
-        private List<EndpointMethodSpec> apiSpecs = new List<EndpointMethodSpec>();
+        private readonly string[] PreferUrlMethodNameIfTheseHttpActions = new[] { "get", "put", "post", "delete" };
+        private readonly ITsCodeGenLogger tsLogger;
+        private readonly TsClassCollection classes;
+        private readonly HttpConfiguration httpConfig;
+        private readonly List<EndpointMethodSpec> apiSpecs = new List<EndpointMethodSpec>();
 
         public IEnumerable<EndpointMethodSpec> Methods => apiSpecs;
 
@@ -37,8 +40,9 @@ namespace RafaelSoft.TsCodeGen.WebApi.Models
         public Assembly FilterApiControllers_ByAssembly { get; set; }
         public IEnumerable<Type> FilterApiControllers_ExcludeControllers { get; set; }
 
-        public EndpointMethodCollection(TsClassCollection classes, HttpConfiguration httpConfig)
+        public EndpointMethodCollection(ITsCodeGenLogger tsLogger, TsClassCollection classes, HttpConfiguration httpConfig)
         {
+            this.tsLogger = tsLogger;
             this.classes = classes;
             this.httpConfig = httpConfig;
         }
@@ -55,14 +59,16 @@ namespace RafaelSoft.TsCodeGen.WebApi.Models
             // .... 1 Gather all class info into classes
             foreach (var api in apis)
             {
+                var apiId = api.GetFriendlyId();
+
                 foreach (var para in api.ParameterDescriptions)
                 {
                     if (para.ParameterDescriptor.ParameterType != null)
-                        AddTypeToTsClasses(para.ParameterDescriptor.ParameterType);
+                        AddTypeToTsClassesFromApi(para.ParameterDescriptor.ParameterType, apiId);
                 }
                 var responseType = api.ResponseDescription.ResponseType ?? api.ResponseDescription.DeclaredType;
                 if (responseType != null)
-                    AddTypeToTsClasses(responseType);
+                    AddTypeToTsClassesFromApi(responseType, apiId);
             }
 
             // .... 2 Gather all method info
@@ -73,8 +79,7 @@ namespace RafaelSoft.TsCodeGen.WebApi.Models
                 var apiSpecRaw = GetApiSpecRawData(api, apiModel);
                 var responseType = api.ResponseDescription.ResponseType ?? api.ResponseDescription.DeclaredType;
 
-                var endpointMethodName = apiSpecRaw.ControllerName
-                    + "_" + (apiSpecRaw.UrlMethodNamePart ?? apiModel.ApiDescription.ActionDescriptor.ActionName ?? apiSpecRaw.HttpMethod);
+                var endpointMethodName = $"{apiSpecRaw.ControllerName}_{apiSpecRaw.MethodName}";
                 endpointMethodName = MakeUniqueName(endpointMethodName, apiSpecs, old => old.EndpointMethodName);
 
                 var bodyParams = api.ParameterDescriptions
@@ -118,6 +123,7 @@ namespace RafaelSoft.TsCodeGen.WebApi.Models
                 apiSpecs.Add(new EndpointMethodSpec
                 {
                     // TS-specific fields
+                    EndpointId = apiId,
                     EndpointMethodName = endpointMethodName,
                     HttpMethod = apiSpecRaw.HttpMethod.ToLower(),
                     UrlTsFriendly = urlTsFriendly,
@@ -138,13 +144,17 @@ namespace RafaelSoft.TsCodeGen.WebApi.Models
             }
         }
 
-        private void AddTypeToTsClasses(Type type)
+        private void AddTypeToTsClassesFromApi(Type type, string apiId)
         {
             if (IgnoreTheseTypes.Contains(type))
                 return;
             if (IgnoreTheseTypesCustom.Contains(type))
                 return;
-            classes.AddType(type);
+            classes.AddType(type, new CodeGenLoggerAddTypeEntry
+            {
+                Reason = AddTypeReasonType.FromApi,
+                ApiId = apiId,
+            });
         }
 
         public void CompileAfterClassesCompiled()
@@ -198,6 +208,12 @@ namespace RafaelSoft.TsCodeGen.WebApi.Models
             var urlMethodNamePart = GetUrlMethodName(api, apiModel);
             if (urlMethodNamePart != null)
                 urlMethodNamePart = urlMethodNamePart.Replace("/", "_");
+            if (string.IsNullOrEmpty(urlMethodNamePart))
+                urlMethodNamePart = null;
+
+            var actionName = apiModel.ApiDescription.ActionDescriptor.ActionName;
+            if (PreferUrlMethodNameIfTheseHttpActions.Contains(actionName?.ToLower()))
+                actionName = urlMethodNamePart; // NOTE: give preference to urlMethodNamePart if its just an HttpAction, they are usually more descriptive
 
             var jsonRequestText = "null";
             if (apiModel.SampleRequests.ContainsKey(jsonKey))
@@ -218,6 +234,9 @@ namespace RafaelSoft.TsCodeGen.WebApi.Models
                 UrlFull = urlFull,
                 UrlTsFriendly = urlTsFriendly,
                 ControllerName = apiModel.ApiDescription.ActionDescriptor.ControllerDescriptor.ControllerName,
+                MethodName = actionName
+                    ?? urlMethodNamePart
+                    ?? apiModel.ApiDescription.HttpMethod.Method,
                 UrlMethodNamePart = urlMethodNamePart,
                 HttpMethod = apiModel.ApiDescription.HttpMethod.Method,
                 JsonRequestText = jsonRequestText,
@@ -259,6 +278,7 @@ namespace RafaelSoft.TsCodeGen.WebApi.Models
             public string UrlFull { get; set; }
             public string UrlTsFriendly { get; set; }
             public string ControllerName { get; set; }
+            public string MethodName { get; set; }
             public object UrlMethodNamePart { get; set; }
             public string HttpMethod { get; set; }
             public string JsonRequestText { get; set; }

@@ -12,14 +12,15 @@ namespace RafaelSoft.TsCodeGen.WebApi.Models
 {
     public class EndpointMethodSpec
     {
+        public string EndpointId { get; set; }
         public string EndpointMethodName { get; set; }
         public string HttpMethod { get; set; }
         public string UrlTsFriendly { get; set; }
-        public Type ResponseType { get; internal set; }
-        public TsCsTypeSpec ResponseTypeSpec { get; internal set; }
+        public Type ResponseType { get; set; }
+        public TsCsTypeSpec ResponseTypeSpec { get; set; }
         public List<EndpointRequestParamSpec> BodyParams { get; set; }
         public List<EndpointRequestParamSpec> UriParams { get; set; }
-        public EndpointRequestParamSpec UriParamsWrapperClass { get; internal set; }
+        public EndpointRequestParamSpec UriParamsWrapperClass { get; set; }
 
         // documentation-specific fields
         public string DocHttpMethod { get; set; }
@@ -38,6 +39,7 @@ namespace RafaelSoft.TsCodeGen.WebApi.Models
                     .Union(UriParams.Where(para => para.IsOptional));
 
         public string DebugString(ITsClassGenerationConfig genConfig) => $@"
+ID: {EndpointId}
 HttpMethod: {HttpMethod}
 UrlFull: {DocUrlFull}
 UrlVar:  {UrlTsFriendly}
@@ -66,7 +68,6 @@ BodyParams:
     //    public string UrlFull { get; set; }
     //    public string Url { get; set; }
     //    public string TsResultType { get; set; }
-    //    
     //}
 
     public class EndpointRequestParamSpec

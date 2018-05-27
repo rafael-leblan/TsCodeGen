@@ -94,7 +94,7 @@ namespace RafaelSoft.TsCodeGen.Models
                 : TypeName;
             if (IsEnum)
                 return $"isNaN({param}) ? {tsUsageTypeName}[{param}] : {param}";
-            if (IsDate)
+            if (IsDate && TypeName == "Date")
                 return $"{param} ? new Date({param}) : null";
             if (IsMine)
                 return $"{param} ? new {tsUsageTypeName}({param}) : null";

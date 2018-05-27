@@ -42,24 +42,25 @@ namespace RafaelSoft.TsCodeGen.Common
         }
 
         public static string PrefixIfNotEmpty(this string str, string prefix)
-        {
-            return !String.IsNullOrEmpty(str) ? prefix + str : str;
-        }
+            => !String.IsNullOrEmpty(str) ? prefix + str : str;
+
+        public static string PostfixIfNotEmpty(this string str, string postfix)
+            => !String.IsNullOrEmpty(str) ? str + postfix : str;
+
+        /// <summary>
+        /// EXAMPLE: "blah".TemplateIfNotNull("aaa $1 zzz") ==> "aaa blah zzz"
+        /// </summary>
+        public static string TemplateIfNotNull(this string str, string template, string target = "$1")
+            => (str != null) ? template.Replace(target, str) : str;
 
         public static string ToString(this bool val, string ifTrue, string ifFalse)
-        {
-            return val ? ifTrue : ifFalse;
-        }
+            => val ? ifTrue : ifFalse;
 
         public static bool IsValidIdentifier(this string s)
-        {
-            return Regex.IsMatch(s, "^[a-zA-Z_][a-zA-Z0-9_]*$");
-        }
+            => Regex.IsMatch(s, "^[a-zA-Z_][a-zA-Z0-9_]*$");
 
         public static string StringJoin(this IEnumerable<string> list, string separator)
-        {
-            return string.Join(separator, list);
-        }
+            => string.Join(separator, list);
 
         public static string ReplaceRegex(this string input, string regexSearch, string regexReplace)
         {
@@ -88,6 +89,20 @@ namespace RafaelSoft.TsCodeGen.Common
         //}
 
         #endregion
+
+        public static IEnumerable<T> ConditionallyIf<T>(this IEnumerable<T> list, bool flag, Func<IEnumerable<T>, IEnumerable<T>> chainedMethod)
+            => flag ? chainedMethod(list) : list;
+
+        public static TV GetOrAdd<TK, TV>(this IDictionary<TK, TV> map, TK key, Func<TV> func)
+        {
+            if (!map.ContainsKey(key))
+            {
+                var val = func();
+                map.Add(key, val);
+                return val;
+            }
+            return map[key];
+        }
 
         public static string GetUniqueNameForMap<T>(this Dictionary<string, T> map, string name)
         {

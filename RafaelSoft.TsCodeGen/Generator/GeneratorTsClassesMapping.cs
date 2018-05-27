@@ -70,7 +70,7 @@ export class SampleMappingService {{
             var specStack = new Stack<TsClassSpec>();
             var lhsSpecName = TsClassGenConfigLHS.TransformTsClassName(spec.Name);
             var rhsVarName = $"rhs_{spec.Name}";
-            var code_classMappings = Generate_classMapping_only(spec, rhsVarName, specStack);
+            var code_classMappings = Generate_classMapping_only(spec, rhsVarName, TsClassGenConfigLHS.SortFieldsAlphabetically, specStack);
 
             return $@"public map_{spec.Name}_to_{lhsSpecName}({rhsVarName}: {TsClassGenConfigRHS.TransformTsClassName(spec.Name)}): {lhsSpecName} {{
   return {code_classMappings.IndentEveryLine("  ", skipFirst: true)};
@@ -78,12 +78,13 @@ export class SampleMappingService {{
 ";
         }
 
-        private string Generate_classMapping_only(TsClassSpec spec, string rhsVarName, Stack<TsClassSpec> specStack)
+        private string Generate_classMapping_only(TsClassSpec spec, string rhsVarName, bool sortFieldsAlphabetically, Stack<TsClassSpec> specStack)
         {
             specStack.Push(spec);
             var lhsSpecName = TsClassGenConfigLHS.TransformTsClassName(spec.Name);
             var code_propMappings = spec.Properties
-                .Select(prop => Generate_mappingSnippetFor(prop, rhsVarName, specStack))
+                .ConditionallyIf(sortFieldsAlphabetically, thisLinq => thisLinq.OrderBy(x => x.Name))
+                .Select(prop => Generate_mappingSnippetFor(prop, rhsVarName, sortFieldsAlphabetically, specStack))
                 .StringJoin("\n");
             specStack.Pop();
 
@@ -92,7 +93,7 @@ export class SampleMappingService {{
 }}";
         }
 
-        private string Generate_mappingSnippetFor(TsClassSpecProperty prop, string rhsVarName, Stack<TsClassSpec> specStack)
+        private string Generate_mappingSnippetFor(TsClassSpecProperty prop, string rhsVarName, bool sortFieldsAlphabetically, Stack<TsClassSpec> specStack)
         {
             var nameLHS = prop.GetTsName(TsClassGenConfigLHS);
             var nameRHS = prop.GetTsName(TsClassGenConfigRHS);
@@ -102,7 +103,7 @@ export class SampleMappingService {{
                 if (specStack.Contains(specInner))
                     return $"{nameLHS}: null, // recursion alert!";
                 var rhsVarNameInner = $"rhs_{specInner.Name}";
-                var code_classMappingsInner = Generate_classMapping_only(specInner, rhsVarNameInner, specStack);
+                var code_classMappingsInner = Generate_classMapping_only(specInner, rhsVarNameInner, sortFieldsAlphabetically, specStack);
                 return $"{nameLHS}: _.map({rhsVarName}.{nameRHS}, {rhsVarNameInner} => {code_classMappingsInner}),";
             }
             else if (prop.TypeSpec.RequiresLodashMapping())
@@ -115,7 +116,7 @@ export class SampleMappingService {{
                 if (specStack.Contains(specInner))
                     return $"{nameLHS}: null, // recursion alert!";
                 var rhsVarNameInner = $"{rhsVarName}.{nameRHS}";
-                var code_classMappingsInner = Generate_classMapping_only(specInner, rhsVarNameInner, specStack);
+                var code_classMappingsInner = Generate_classMapping_only(specInner, rhsVarNameInner, sortFieldsAlphabetically, specStack);
                 return $"{nameLHS}: {code_classMappingsInner},";
             }
             return $"{nameLHS}: {rhsVarName}.{nameRHS},";

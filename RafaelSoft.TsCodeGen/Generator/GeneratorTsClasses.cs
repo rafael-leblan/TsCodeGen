@@ -15,6 +15,8 @@ namespace RafaelSoft.TsCodeGen.Generator
         //TODO: 04FC4F88: maybe have TsClassGenConfig as a parameter in constructor
         public string SpecNamePrefix { get; set; } = "";
         public string SpecNamePostfix { get; set; } = "";
+        public bool SortFieldsAlphabetically { get; set; } = true;
+        public bool SortMethodsAlphabetically { get; set; } = true;
         public IdentifierCaseType FieldCaseType { get; set; } = IdentifierCaseType.Unchanged;
 
         public GeneratorTsClasses(TsClassCollection tsClasses, TsImportsManager importsManager)
@@ -27,11 +29,13 @@ namespace RafaelSoft.TsCodeGen.Generator
         {
             var enumsCode = tsClasses.CompiledTsClasses
                 .Where(spec => spec.IsEnum)
+                //.ConditionallyIf(SortClassesAlphabetically, thisLinq => thisLinq.OrderBy(spec => spec.Name)) // NOTE: a3c189f5: there is custom sorting inside, don't need this
                 .Select(spec => Generate_enum(spec))
                 .StringJoin("\n");
 
             var classesCode = tsClasses.CompiledTsClasses
                 .Where(spec => !spec.IsEnum)
+                //.ConditionallyIf(SortClassesAlphabetically, thisLinq => thisLinq.OrderBy(spec => spec.Name)) // NOTE: a3c189f5: there is custom sorting inside, don't need this
                 .Select(spec => Generate_class(spec))
                 .StringJoin("\n");
 
@@ -52,6 +56,7 @@ namespace RafaelSoft.TsCodeGen.Generator
         private string Generate_enum(TsClassSpec spec)
         {
             var enumValues = spec.EnumValues
+                .OrderBy(enumVal => enumVal.Value) // TODO: needed?
                 .Where(enumVal => enumVal.Name.IsValidIdentifier())
                 .Select(enumVal => $"{enumVal.Name} = {enumVal.Value},")
                 .StringJoin("\n");
@@ -68,6 +73,7 @@ export enum {spec.Name} {{
 
             var code_specClassName = this.TransformTsClassName(spec.Name);
             var code_propValues = spec.Properties
+                .ConditionallyIf(SortFieldsAlphabetically, thisLinq => thisLinq.OrderBy(x => x.GetTsName(this)))
                 .Select(prop => $"{prop.ToTsString(this)};")
                 .StringJoin("\n");
             var code_extendsSuperclass = this.TransformTsClassName(spec.NameOfSuperClass).PrefixIfNotEmpty(" extends ");
@@ -75,6 +81,7 @@ export enum {spec.Name} {{
             var code_passInitIfNoSuper = (spec.NameOfSuperClass == null) ? "init, " : "";
             var code_revivers = spec.Properties
                 .Where(x => x.ToTsReviverString(this) != null)
+                .ConditionallyIf(SortFieldsAlphabetically, thisLinq => thisLinq.OrderBy(x => x.GetTsName(this)))
                 .Select(prop => $"{prop.GetTsName(this)}: {prop.ToTsReviverString(this, "init." + prop.GetTsName(this))},")
                 .StringJoin("\n");
             var code_constructor = $@"constructor(init?: Partial<{code_specClassName}>) {{

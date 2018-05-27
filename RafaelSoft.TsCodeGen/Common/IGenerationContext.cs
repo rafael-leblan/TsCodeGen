@@ -10,6 +10,8 @@ namespace RafaelSoft.TsCodeGen.Common
     {
         string SpecNamePrefix { get; }
         string SpecNamePostfix { get; }
+        bool SortFieldsAlphabetically { get; }
+        bool SortMethodsAlphabetically { get; }
         IdentifierCaseType FieldCaseType { get; }
     }
 
@@ -17,6 +19,8 @@ namespace RafaelSoft.TsCodeGen.Common
     {
         public string SpecNamePrefix { get; set; } = "";
         public string SpecNamePostfix { get; set; } = "";
+        public bool SortFieldsAlphabetically { get; set; } = true;
+        public bool SortMethodsAlphabetically { get; set; } = true;
         public IdentifierCaseType FieldCaseType { get; set; } = IdentifierCaseType.Unchanged;
     }
 }

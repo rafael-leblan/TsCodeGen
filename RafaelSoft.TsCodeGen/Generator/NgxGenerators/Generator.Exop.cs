@@ -31,12 +31,15 @@ namespace RafaelSoft.TsCodeGen.Generator.NgxGenerators
         public string Generate()
         {
             var code_invocationSubjectField = InvokerInterface.Methods
+                .ConditionallyIf(TsClassGenConfig.SortMethodsAlphabetically, thisLinq => thisLinq.OrderBy(m => m.MethodName))
                 .Select(Generate_invocationSubjectField)
                 .StringJoin("\n");
             var code_invocation = InvokerInterface.Methods
+                .ConditionallyIf(TsClassGenConfig.SortMethodsAlphabetically, thisLinq => thisLinq.OrderBy(m => m.MethodName))
                 .Select(Generate_invocation)
                 .StringJoin("\n");
             var code_exvocationFuncs = ExvokerInterface.Methods
+                .ConditionallyIf(TsClassGenConfig.SortMethodsAlphabetically, thisLinq => thisLinq.OrderBy(m => m.MethodName))
                 .Select(Generate_exvocation)
                 .StringJoin("\n");
             return $@"
@@ -75,7 +78,7 @@ export class {AngularClassName} {{
             return $@"
 window['exinvoke_{spec.MethodName}'] = ({param1.ParamName}:{param1.GetTsParamTypeName(TsClassGenConfig)}) => {{
   this.ngZone.run(() => {{
-    {param1.ParamName} = {param1.TsParamTypeReviver(TsClassGenConfig, param1.ParamName)};
+    {param1.ParamName} = {param1.TsParamTypeReviver(TsClassGenConfig, param1.ParamName) ?? param1.ParamName};
     this.{spec.MethodName}.next({param1.ParamName});
   }});
 }};";
