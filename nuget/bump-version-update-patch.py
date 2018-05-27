@@ -46,6 +46,10 @@ filePatch.close()
 textPatch = textPatch.replace('$NewVersion$', nextVersion)
 
 # .... write to patch file
-patchFileOut = open('./nuget/.bump-version/RafaelSoft.TsCodeGen-bumpVersion.patch', "w", encoding="utf8")	
+fnameOut = './nuget/.bump-version/RafaelSoft.TsCodeGen-bumpVersion.patch'
+dirOut = os.path.dirname(fnameOut)
+if not os.path.exists(dirOut):
+    os.makedirs(dirOut)
+patchFileOut = open(fnameOut, "w", encoding="utf8")	
 patchFileOut.write(textPatch)
 patchFileOut.close()

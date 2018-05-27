@@ -1,0 +1,89 @@
+From 66ab146d542a4615c376ee583a1b1bd5a8af18c1 Mon Sep 17 00:00:00 2001
+From: rafael-leblan <rafael.leblan@gmail.com>
+Date: Sun, 27 May 2018 16:25:12 -0400
+Subject: [PATCH] NUGET $NewVersion$
+
+---
+ RafaelSoft.TsCodeGen.WebApi/Properties/AssemblyInfo.cs | 4 ++--
+ RafaelSoft.TsCodeGen/RafaelSoft.TsCodeGen.csproj       | 2 +-
+ nuget/RafaelSoft.TsCodeGen.WebApi.nuspec               | 4 ++--
+ nuget/RafaelSoft.TsCodeGen.nuspec                      | 2 +-
+ zz-push-nuget.bat                                      | 4 ++--
+ 5 files changed, 8 insertions(+), 8 deletions(-)
+
+diff --git a/RafaelSoft.TsCodeGen.WebApi/Properties/AssemblyInfo.cs b/RafaelSoft.TsCodeGen.WebApi/Properties/AssemblyInfo.cs
+index 1e91612..45b4287 100644
+--- a/RafaelSoft.TsCodeGen.WebApi/Properties/AssemblyInfo.cs
++++ b/RafaelSoft.TsCodeGen.WebApi/Properties/AssemblyInfo.cs
+@@ -32,5 +32,5 @@ using System.Runtime.InteropServices;
+ // You can specify all the values or you can default the Build and Revision Numbers
+ // by using the '*' as shown below:
+ // [assembly: AssemblyVersion("1.0.*")]
+-[assembly: AssemblyVersion("1.0.1.0")]
+-[assembly: AssemblyFileVersion("1.0.1.0")]
++[assembly: AssemblyVersion("$NewVersion$.0")]
++[assembly: AssemblyFileVersion("$NewVersion$.0")]
+diff --git a/RafaelSoft.TsCodeGen/RafaelSoft.TsCodeGen.csproj b/RafaelSoft.TsCodeGen/RafaelSoft.TsCodeGen.csproj
+index a48bb19..3f4b72e 100644
+--- a/RafaelSoft.TsCodeGen/RafaelSoft.TsCodeGen.csproj
++++ b/RafaelSoft.TsCodeGen/RafaelSoft.TsCodeGen.csproj
+@@ -2,7 +2,7 @@
+ 
+   <PropertyGroup>
+     <TargetFramework>netstandard2.0</TargetFramework>
+-    <Version>1.0.1</Version>
++    <Version>$NewVersion$</Version>
+     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+     <RepositoryUrl></RepositoryUrl>
+   </PropertyGroup>
+diff --git a/nuget/RafaelSoft.TsCodeGen.WebApi.nuspec b/nuget/RafaelSoft.TsCodeGen.WebApi.nuspec
+index a237776..547ee8f 100644
+--- a/nuget/RafaelSoft.TsCodeGen.WebApi.nuspec
++++ b/nuget/RafaelSoft.TsCodeGen.WebApi.nuspec
+@@ -2,7 +2,7 @@
+ <package >
+   <metadata>
+     <id>RafaelSoft.TsCodeGen.WebApi</id>
+-    <version>1.0.1</version>
++    <version>$NewVersion$</version>
+     <authors>Rafael Leblan</authors>
+     <owners>Rafael Leblan</owners>
+     <licenseUrl>https://opensource.org/licenses/FPL-1.0.0</licenseUrl>
+@@ -17,7 +17,7 @@
+       <dependency id="Newtonsoft.Json" version="11.0.2" />
+       <dependency id="Microsoft.AspNet.WebApi.Client" version="5.2.6" />
+       <dependency id="Microsoft.AspNet.WebApi.Core" version="5.2.6" />
+-      <dependency id="RafaelSoft.TsCodeGen" version="1.0.1" />
++      <dependency id="RafaelSoft.TsCodeGen" version="$NewVersion$" />
+     </dependencies>
+   </metadata>
+   <files>
+diff --git a/nuget/RafaelSoft.TsCodeGen.nuspec b/nuget/RafaelSoft.TsCodeGen.nuspec
+index 55070ba..277ec80 100644
+--- a/nuget/RafaelSoft.TsCodeGen.nuspec
++++ b/nuget/RafaelSoft.TsCodeGen.nuspec
+@@ -2,7 +2,7 @@
+ <package >
+   <metadata>
+     <id>RafaelSoft.TsCodeGen</id>
+-    <version>1.0.1</version>
++    <version>$NewVersion$</version>
+     <authors>Rafael Leblan</authors>
+     <owners>Rafael Leblan</owners>
+     <licenseUrl>https://opensource.org/licenses/FPL-1.0.0</licenseUrl>
+diff --git a/zz-push-nuget.bat b/zz-push-nuget.bat
+index a6b0835..a57169d 100644
+--- a/zz-push-nuget.bat
++++ b/zz-push-nuget.bat
+@@ -1,4 +1,4 @@
+ nuget pack nuget/RafaelSoft.TsCodeGen.nuspec
+ nuget pack nuget/RafaelSoft.TsCodeGen.WebApi.nuspec
+-start nuget push RafaelSoft.TsCodeGen.1.0.1.nupkg -source https://www.nuget.org
+-start nuget push RafaelSoft.TsCodeGen.WebApi.1.0.1.nupkg -source https://www.nuget.org
+\ No newline at end of file
++start nuget push RafaelSoft.TsCodeGen.$NewVersion$.nupkg -source https://www.nuget.org
++start nuget push RafaelSoft.TsCodeGen.WebApi.$NewVersion$.nupkg -source https://www.nuget.org
+\ No newline at end of file
+-- 
+2.19.1.windows.1
+
